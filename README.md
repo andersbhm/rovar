@@ -65,9 +65,8 @@ Calculate great circle distance and angle between two coordinates using the have
 ## get_propagation_time_haversine(lat1, lon1, altitude1, lat2, lon2, altitude2)
 Get propagation time, assuming speed of light, from two different positions
 
-
 Latitude and longitude in degrees. Altitude in meters.
-Return propagation time in seconds'''
+Return propagation time in seconds
 
 * Parameters:
   * lat1 : latitude of first coordinate in degrees
