@@ -46,7 +46,20 @@ def get_AGILE_obt_from_date(date):
     return timegm(date.timetuple()) - tepoch
 
 def haversine(lat1, lon1, lat2, lon2):
-    '''Calculate great circle distance [m] and angle [radians] between coordinates in latitude, and longitude, ((lat1, lon1) and (lat2, lon2)), using haversine'''
+    '''
+    Calculate great circle distance and angle between two coordinates using the haversine formula
+
+    Parameters:
+    lat1 : latitude of first coordinate in degrees
+    lon1 : longitude of first coordinate in degrees
+    lat2 : latitude of second coordinate in degrees
+    lon2 : longitude of second coordinate in degrees
+
+    Returns:
+    distance: great circle distance in meters
+    theta: angle in radians
+    '''
+
     dLat = radians(lat2 - lat1)
     dLon = radians(lon2 - lon1)
     lat1 = radians(lat1)
@@ -57,23 +70,43 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def get_propagation_time_haversine(lat1, lon1, altitude1, lat2, lon2, altitude2):
     '''
-    Get propagation time, assuming speed of light, from two different (lat, lon, altitude) positions
-    Latitude and longitude in degrees. Altitude in meters.
-    Return propagation time in seconds'''
+    Get propagation time, assuming speed of light, from two different positions
+
+    Latitude and longitude in degrees. Altitude in meters. Return propagation time in seconds
+
+    Parameters:
+    lat1 : latitude of first coordinate in degrees
+    lon1 : longitude of first coordinate in degrees
+    altitude1 : altitude of first coordinate in meters
+    lat2 : latitude of second coordinate in degrees
+    lon2 : longitude of second coordinate in degrees
+    altitude2 : altitude of second coordinate in meters
+
+    Returns:
+    prop_time: propagation time in seconds
+    '''
     _, theta = haversine(lat1, lon1, lat2, lon2)
     distance_lightning_sat = sqrt((R_earth+altitude1)**2 + (R_earth+altitude2)**2 - 2*(R_earth+altitude1)*(R_earth+altitude2)*cos(theta));
     return distance_lightning_sat/speed_of_light
 
 def get_propagation_time_and_distance(lat1, lon1, altitude1, lat2, lon2, altitude2, calculation_method="WGS84"):
-    ''' More accurate than haversine and get_propagation_time functions. Do not assume Earth as a perfect circle.
+    '''
+    Get propagation time, assuming speed of light, and great circle distance from two different positions
 
-    ###Inputs Can be arrays.###
+    More accurate than haversine() and get_propagation_time() functions. Does not assume Earth as a perfect circle.
 
-    Input units in degrees and meters.
-    Calculation method can be "WGS84" (faster and more accurate) or "HAVERSINE"
+    Parameters:
+    lat1 : latitude of first coordinate in degrees. Can be array.
+    lon1 : longitude of first coordinate in degrees. Can be array.
+    altitude1 : altitude of first coordinate in meters. Can be array.
+    lat2 : latitude of second coordinate in degrees. Can be array.
+    lon2 : longitude of second coordinate in degrees. Can be array.
+    altitude2 : altitude of second coordinate in meters. Can be array.
+    calculation_method : can be "WGS84" (faster and more accurate) or "HAVERSINE"
 
-    Return propagation time between position1 and position2 in seconds
-    and great circle distance along surface of Earth, between position1 and position2 in meters.
+    Returns:
+    prop_time: propagation time between position1 and position2 in seconds
+    distance: great circle distance along surface of Earth, between position1 and position2 in meters.
     '''
     if calculation_method == "WGS84": # faster an more accurate
         x_sat, y_sat, z_sat = pyproj.transform(lla, ecef, lon1, lat1, altitude1, radians=False)
@@ -98,10 +131,20 @@ def get_propagation_time_and_distance(lat1, lon1, altitude1, lat2, lon2, altitud
     return propagation_time_lightning_sat, distance
 
 def distance_to_shoreline(lon_array, lat_array, path_to_GSHHG = "./useful_files/dist_to_GSHHG_v2.3.7_1m.nc"):
-    '''Get distance to coastline based on the GSHHG precalculated distance to shore grid: dist_to_GSHHG_v2.3.7_1m.nc
+    '''
+    Get distance to coastline based on the GSHHG precalculated distance to shore grid
+
+    Filename: dist_to_GSHHG_v2.3.7_1m.nc
+
     The datset is available from https://www.soest.hawaii.edu/pwessel/gshhg/
-    Input: longitude and latitude arrays.
-    Return: array of distances to coastline in meters, where negative distances are over ocean.
+
+    Parameters:
+    lon_array : longitude array in degrees
+    lat_array : latitude array in degrees
+    path_to_GSHHG : path to "dist_to_GSHHG_v2.3.7_1m.nc"
+
+    Returns:
+    distance : array of distances to coastline in meters. Negative distances are over ocean.
     '''
     lon_array, lat_array = np.array(lon_array), np.array(lat_array)
     lon_lat_distance_to_coast_dataset = Dataset(path_to_GSHHG)
@@ -126,17 +169,36 @@ def get_lat_lon_h_satellite(year, month, day, hour, minute, second, microsecond,
     file_finals2000A_path = "./useful_files/finals2000A.all.txt"):
 
     '''
-    year month, day hour minute second microsecond are integers.
-    (2018, 2, 16, 20, 57, 49, 123456, "ISS")
-    Satellite_name can be "ISS", "RHESSI", "AGILE" or "Fermi", depends on
-    The function return latitude, longitude in degrees, altitude in meters,
-    and error in radial distance in km between the TLE before and after the closest TLE.
-    The last parameter is a quality check if ISS has done some maneuvers.
+    Get latitude, longitude and altitude of a satellite. The function automatically download TLE files from spacetrack provided given the correct satellite ID. The function also checks if there are some discrepancies between the closest in time TLE measurements. This prints a warning if for example ISS has completed a maneuver between two TLEs leading to large errors in the calculated position. The functions does not decide which is the correct TLE in these cases.
 
-    Download Earth orientation data from: https://www.iers.org/IERS/EN/DataProducts/EarthOrientationData/eop.html
-    Filename = finals2000A.all
+    Satellite name	 Satellite ID
+    ISS	             25544
+    Fermi	         33053
+    AGILE	         31135
+    RHESSI	         27370
 
-    Run update_TLEs() to get TLE data for this calculation.
+    Parameters:
+    year : year as integer
+    month : month as integer
+    day : day as integer
+    hour : hour as integer
+    minute : minute as integer
+    second : second as integer
+    microsecond : microsecond as integer
+    satellite_name : satellite name, for example "ISS"
+    printwarning : True or False
+    updateTLE : True or False
+    TLE = TWO LINE ELEMENT file from SpaceTrack.
+    if True the function download and save a TLE file for the satellite of interest. This only needs to be done once for calculating satellite positions before the current date.
+    update_TLE_information_array : a list where first element is satellite ID and the second element is a path to a txt file where you have written your SpaceTrack username and password
+    file_finals2000A_path : finals2000A.all file with Earth orientation data, available from https://www.iers.org/IERS/EN/DataProducts/EarthOrientationData/eop.html
+
+    Returns:
+    latitude : latitude of satellite in degrees
+    longitude : longitude of satellite in degrees
+    altitude : altitude of satellite in meters
+    radial distance : safety check. Radial distance [km] between the satellite positions calculated with the closest TLE and the TLE before the closest TLE.
+    radial distance : safety check. Radial distance [km] between the satellite positions calculated with the closest TLE and the TLE after the closest TLE
     '''
     sat_ID, spacetrack_usernamepassword_file = update_TLE_information_array[0], update_TLE_information_array[1]
 
