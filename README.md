@@ -1,5 +1,7 @@
-# Useful functions
-Useful python functions used for my PhD in Space Physics
+# ROVAR PYTHON PACKAGE
+Useful python functions used for my PhD in Space Physics.
+
+Testet in python 3.9
 
 # Description of functions
 
