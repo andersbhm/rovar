@@ -1,4 +1,4 @@
-# ROVAR PYTHON PACKAGE
+# ROVAR PYTHON FUNCTIONS
 Useful python functions used for my PhD in Space Physics.
 
 Tested in python 3.9
